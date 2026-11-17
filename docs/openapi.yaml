@@ -1,0 +1,289 @@
+openapi: '3.1.1'
+info:
+  title: Air Quality API
+  description: 'Air quality measurements for six cities in Madagascar, with threshold-based alert rules.'
+  version: 1.0.0
+servers:
+  - url: http://localhost/
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /api/cities:
+    get:
+      tags:
+        - Air quality
+      summary: List cities
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CityDto'
+  '/api/cities/{cityId}/aqi/latest':
+    get:
+      tags:
+        - Air quality
+      summary: Latest measurement of a city
+      parameters:
+        - name: cityId
+          in: path
+          required: true
+          schema:
+            pattern: '^-?(?:0|[1-9]\d*)$'
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+  '/api/cities/{cityId}/aqi':
+    get:
+      tags:
+        - Air quality
+      summary: 'Hourly measurements, or a daily summary with granularity=Daily'
+      parameters:
+        - name: cityId
+          in: path
+          required: true
+          schema:
+            pattern: '^-?(?:0|[1-9]\d*)$'
+            type: integer
+            format: int32
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: granularity
+          in: query
+          schema:
+            $ref: '#/components/schemas/Granularity'
+      responses:
+        '200':
+          description: OK
+  /api/alerts:
+    get:
+      tags:
+        - Alerts
+      summary: Rules exceeded by each city's latest measurement
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TriggeredAlert'
+  /api/alert-rules:
+    get:
+      tags:
+        - Alerts
+      summary: List alert rules
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertRule'
+    post:
+      tags:
+        - Alerts
+      summary: Create an alert rule (admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRuleRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+  '/api/alert-rules/{id}':
+    delete:
+      tags:
+        - Alerts
+      summary: Delete an alert rule (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            pattern: '^-?(?:0|[1-9]\d*)$'
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    AlertRule:
+      required:
+        - cityId
+        - pollutant
+        - threshold
+      type: object
+      properties:
+        id:
+          pattern: '^-?(?:0|[1-9]\d*)$'
+          type:
+            - integer
+            - string
+          format: int32
+        cityId:
+          pattern: '^-?(?:0|[1-9]\d*)$'
+          type:
+            - integer
+            - string
+          format: int32
+        pollutant:
+          $ref: '#/components/schemas/Pollutant'
+        threshold:
+          pattern: '^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$'
+          type:
+            - number
+            - string
+          format: double
+    CityDto:
+      required:
+        - id
+        - name
+        - country
+        - latitude
+        - longitude
+      type: object
+      properties:
+        id:
+          pattern: '^-?(?:0|[1-9]\d*)$'
+          type:
+            - integer
+            - string
+          format: int32
+        name:
+          type: string
+        country:
+          type:
+            - 'null'
+            - string
+        latitude:
+          pattern: '^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$'
+          type:
+            - 'null'
+            - number
+            - string
+          format: double
+        longitude:
+          pattern: '^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$'
+          type:
+            - 'null'
+            - number
+            - string
+          format: double
+    CreateRuleRequest:
+      required:
+        - cityId
+        - pollutant
+        - threshold
+      type: object
+      properties:
+        cityId:
+          pattern: '^-?(?:0|[1-9]\d*)$'
+          type:
+            - integer
+            - string
+          format: int32
+        pollutant:
+          $ref: '#/components/schemas/Pollutant'
+        threshold:
+          pattern: '^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$'
+          type:
+            - number
+            - string
+          format: double
+    Granularity:
+      enum:
+        - Hourly
+        - Daily
+        - null
+    Pollutant:
+      enum:
+        - Co
+        - No
+        - No2
+        - O3
+        - So2
+        - Pm25
+        - Pm10
+        - Nh3
+    TriggeredAlert:
+      required:
+        - ruleId
+        - cityId
+        - city
+        - pollutant
+        - threshold
+        - value
+        - at
+      type: object
+      properties:
+        ruleId:
+          pattern: '^-?(?:0|[1-9]\d*)$'
+          type:
+            - integer
+            - string
+          format: int32
+        cityId:
+          pattern: '^-?(?:0|[1-9]\d*)$'
+          type:
+            - integer
+            - string
+          format: int32
+        city:
+          type: string
+        pollutant:
+          type: string
+        threshold:
+          pattern: '^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$'
+          type:
+            - number
+            - string
+          format: double
+        value:
+          pattern: '^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$'
+          type:
+            - number
+            - string
+          format: double
+        at:
+          type: string
+          format: date-time
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      description: API key. Its role (reader or admin) decides which routes are allowed.
+      name: X-Api-Key
+      in: header
+security:
+  - ApiKey: [ ]
+tags:
+  - name: Health
+  - name: Air quality
+  - name: Alerts
