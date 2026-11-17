@@ -1,5 +1,7 @@
 # Air Quality API
 
+[![CI](https://github.com/TsioryJonathan/air-quality-api/actions/workflows/ci.yml/badge.svg)](https://github.com/TsioryJonathan/air-quality-api/actions/workflows/ci.yml)
+
 REST API built with ASP.NET Core (.NET 10) that serves air quality measurements for six cities in Madagascar, with threshold-based alert rules.
 
 It reads the PostgreSQL database filled by [air-quality-etl](https://github.com/0nlyDevs/air-quality-etl) (Airflow, star schema). A Grafana dashboard is connected to the same database: <https://grafana-rxj7.onrender.com/>.
