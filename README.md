@@ -17,7 +17,13 @@ It reads the PostgreSQL database filled by [air-quality-etl](https://github.com/
 | `POST /api/alert-rules` | admin | Create a rule `{ cityId, pollutant, threshold }` |
 | `DELETE /api/alert-rules/{id}` | admin | Delete a rule |
 | `GET /health` | public | Health check |
-| `GET /openapi/v1.json` | public | OpenAPI document |
+| `GET /openapi/v1.json`, `/openapi/v1.yaml`, `/scalar` | public | API documentation |
+
+## API documentation
+
+- Interactive reference (try the routes, enter your key): `/scalar` when the API runs
+- OpenAPI document: `/openapi/v1.json` and `/openapi/v1.yaml`
+- Committed copy: [`docs/openapi.yaml`](docs/openapi.yaml). A test fails if it no longer matches the code; to regenerate it after changing an endpoint, run `UPDATE_OPENAPI=1 dotnet test --filter Committed` and commit the result.
 
 Authentication: `X-Api-Key` header. Keys and their roles come from configuration (`ApiKeys:<key>=reader|admin`), never from code.
 
