@@ -4,3 +4,10 @@ obj/
 *.user
 .env
 TestResults/
+
+# Local environment variants and credentials
+.env.*
+!.env.example
+*.pfx
+*.pem
+*.key

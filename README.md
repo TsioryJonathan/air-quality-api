@@ -52,12 +52,11 @@ Requirements: .NET 10 SDK, a PostgreSQL 17 database with the ETL schema (`db/sta
 ```bash
 export ConnectionStrings__AirQuality="Host=...;Database=air_quality;Username=...;Password=..."
 export ApiKeys__readerkey=reader ApiKeys__adminkey=admin   # key = name after "ApiKeys__", role = value
-export Database__MigrateOnStartup=true                     # creates the alert_rules table
 dotnet run --project src/AirQuality.Api --urls http://localhost:5000
 curl -H "X-Api-Key: readerkey" http://localhost:5000/api/cities
 ```
 
-`Database__MigrateOnStartup=true` only creates `alert_rules`: the ETL tables are never modified.
+The API never runs database migrations on startup. `Database__MigrateOnStartup` is no longer used. Schema changes must be reviewed and applied separately; do not apply migrations to an existing shared database without reviewing them first. Integration tests migrate only their disposable PostgreSQL container.
 
 ## Tests
 
@@ -69,3 +68,44 @@ dotnet test
 - `AirQuality.IntegrationTests`: the whole API against a real PostgreSQL 17 started by Testcontainers (Docker required), with a known dataset. Set `TEST_POSTGRES_IMAGE` to use another image (default `postgres:17`).
 
 The GitHub Actions CI runs both on every push and pull request.
+
+## Docker
+
+The multi-stage Dockerfile builds with the .NET 10 SDK and runs with the ASP.NET
+10 runtime as the image's non-root user. Secrets and development configuration
+are excluded from the build context. No PostgreSQL container is provisioned:
+the API uses the existing external database configured in `ConnectionStrings__AirQuality`.
+Starting the API never runs database migrations.
+
+Copy `.env.example` to `.env` if you do not already have a `.env`, then set the real
+connection string and API key variable names. In Production, the development keys
+are not loaded. Keep `.env` out of Git. Docker Compose reads it automatically;
+`source .env` is only needed when running `dotnet run` directly from your shell.
+
+```bash
+docker compose up --build -d
+docker compose logs -f api
+curl --fail-with-body http://localhost:5251/health
+docker compose down
+```
+
+`API_PORT` changes the local port (default 5251). The published local port is bound
+to loopback. A first Docker build downloads the Microsoft images and NuGet packages
+unless they are already cached.
+
+### Render / Railway
+
+Connect the GitHub repository and select Docker deployment with the repository
+root as the build context and `Dockerfile` as the Dockerfile. Use its default
+entrypoint (no custom build/start command). Set the health check path to `/health`.
+The entrypoint listens on `0.0.0.0:$PORT`, falling back to 8080.
+
+Set these environment variables in the hosting dashboard (values without shell quotes):
+
+- `ConnectionStrings__AirQuality`: the existing database's Npgsql connection string.
+- `ApiKeys__<your_reader_secret>`: `reader`.
+- `ApiKeys__<your_admin_secret>`: `admin` (only if administration is needed).
+
+The image defaults to Production. Do not upload `.env` or set the environment to
+Development on the host. Keep API keys on the server; do not embed an admin key in
+public frontend code. Confirm `/health` responds before testing authenticated read routes.

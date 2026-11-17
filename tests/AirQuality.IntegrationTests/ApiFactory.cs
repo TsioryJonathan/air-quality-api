@@ -1,3 +1,5 @@
+using AirQuality.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -27,6 +29,12 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         cmd.CommandText = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "star-schema.sql"))
                           + await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "seed.sql"));
         await cmd.ExecuteNonQueryAsync();
+
+        // Only migrate the disposable PostgreSQL container created by this fixture.
+        var options = new DbContextOptionsBuilder<AirQualityDbContext>()
+            .UseNpgsql(_db.GetConnectionString()).Options;
+        await using var db = new AirQualityDbContext(options);
+        await db.Database.MigrateAsync();
     }
 
     public new Task DisposeAsync() => _db.DisposeAsync().AsTask();
@@ -37,7 +45,6 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["ConnectionStrings:AirQuality"] = _db.GetConnectionString(),
-            ["Database:MigrateOnStartup"] = "true",
             [$"ApiKeys:{ReaderKey}"] = "reader",
             [$"ApiKeys:{AdminKey}"] = "admin",
         }));

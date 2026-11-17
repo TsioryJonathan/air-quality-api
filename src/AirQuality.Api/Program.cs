@@ -5,7 +5,6 @@ using AirQuality.Api.OpenApi;
 using AirQuality.Application;
 using AirQuality.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -47,11 +46,7 @@ app.UseStatusCodePages();
 app.UseAuthentication();
 app.UseAuthorization();
 
-if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
-{
-    using var scope = app.Services.CreateScope();
-    await scope.ServiceProvider.GetRequiredService<AirQualityDbContext>().Database.MigrateAsync();
-}
+// Database schema changes are managed separately; never migrate on API startup.
 
 app.MapOpenApi();                          // /openapi/v1.json
 app.MapOpenApi("/openapi/{documentName}.yaml"); // /openapi/v1.yaml
