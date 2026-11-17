@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AirQuality.Api/AirQuality.Api.csproj" />
+    <Project Path="src/AirQuality.Application/AirQuality.Application.csproj" />
+    <Project Path="src/AirQuality.Domain/AirQuality.Domain.csproj" />
+    <Project Path="src/AirQuality.Infrastructure/AirQuality.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AirQuality.IntegrationTests/AirQuality.IntegrationTests.csproj" />
+    <Project Path="tests/AirQuality.UnitTests/AirQuality.UnitTests.csproj" />
+  </Folder>
+</Solution>
