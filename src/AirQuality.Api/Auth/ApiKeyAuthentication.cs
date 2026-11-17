@@ -19,7 +19,7 @@ public static class Policies
     public const string CanManageRules = "CanManageRules";
 }
 
-public sealed class ApiKeyOptions : AuthenticationSchemeOptions
+public sealed class ApiKeyAuthenticationOptions : AuthenticationSchemeOptions
 {
     public const string Scheme = "ApiKey";
     public const string HeaderName = "X-Api-Key";
@@ -29,12 +29,12 @@ public sealed class ApiKeyOptions : AuthenticationSchemeOptions
 }
 
 public sealed class ApiKeyHandler(
-    IOptionsMonitor<ApiKeyOptions> options, ILoggerFactory logger, UrlEncoder encoder)
-    : AuthenticationHandler<ApiKeyOptions>(options, logger, encoder)
+    IOptionsMonitor<ApiKeyAuthenticationOptions> options, ILoggerFactory logger, UrlEncoder encoder)
+    : AuthenticationHandler<ApiKeyAuthenticationOptions>(options, logger, encoder)
 {
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Request.Headers.TryGetValue(ApiKeyOptions.HeaderName, out var provided) || provided.Count != 1)
+        if (!Request.Headers.TryGetValue(ApiKeyAuthenticationOptions.HeaderName, out var provided) || provided.Count != 1)
             return Task.FromResult(AuthenticateResult.NoResult());
 
         var providedBytes = Encoding.UTF8.GetBytes(provided.ToString());

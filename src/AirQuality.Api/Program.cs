@@ -1,10 +1,12 @@
 using System.Text.Json.Serialization;
 using AirQuality.Api.Auth;
 using AirQuality.Api.Endpoints;
+using AirQuality.Api.OpenApi;
 using AirQuality.Application;
 using AirQuality.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,16 +17,16 @@ builder.Services.AddScoped<AlertService>();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services
-    .AddAuthentication(ApiKeyOptions.Scheme)
-    .AddScheme<ApiKeyOptions, ApiKeyHandler>(ApiKeyOptions.Scheme, _ => { });
-builder.Services.AddOptions<ApiKeyOptions>(ApiKeyOptions.Scheme).Configure<IConfiguration>((o, config) =>
+    .AddAuthentication(ApiKeyAuthenticationOptions.Scheme)
+    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyHandler>(ApiKeyAuthenticationOptions.Scheme, _ => { });
+builder.Services.AddOptions<ApiKeyAuthenticationOptions>(ApiKeyAuthenticationOptions.Scheme).Configure<IConfiguration>((o, config) =>
     o.Keys = config.GetSection("ApiKeys").Get<Dictionary<string, string>>() ?? []);
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.CanRead, p => p.RequireRole(Roles.Reader, Roles.Admin))
     .AddPolicy(Policies.CanManageRules, p => p.RequireRole(Roles.Admin));
 
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(o => o.AddDocumentTransformer<ApiKeySecurityTransformer>());
 
 var app = builder.Build();
 
@@ -51,8 +53,11 @@ if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
     await scope.ServiceProvider.GetRequiredService<AirQualityDbContext>().Database.MigrateAsync();
 }
 
-app.MapOpenApi();
-app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+app.MapOpenApi();                          // /openapi/v1.json
+app.MapOpenApi("/openapi/{documentName}.yaml"); // /openapi/v1.yaml
+app.MapScalarApiReference();               // /scalar (interactive docs)
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous()
+    .WithTags("Health").WithSummary("Health check");
 app.MapApi();
 
 app.Run();
